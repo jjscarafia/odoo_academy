@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
+from datetime import timedelta, datetime, date, time
 from openerp import models, fields, api, exceptions
 
 
@@ -14,10 +14,6 @@ class Course(models.Model):
         string="Horas catedras",
         help='Ingrese solo números',
     )
-    description = fields.Text(
-        "Descripcion",
-    )
-    themes = fields.Text()
     responsible_id = fields.Many2one(
         'res.users',
         ondelete="set null",
@@ -28,19 +24,25 @@ class Course(models.Model):
         'openacademy.sessions',
         'course_id',
         string="Sesiones",
-        required=True)
-    _sql_contraints = [
-        ('name_unique', 'UNIQUE(name)',
-            "El curso debe tener un nombre unico"),
-    ]
+        required=True,
+    )
+
+
+class Session_fields(models.Model):
+
+    """"""
+
+    _name = 'openacademy.session_fields'
+
+    name = fields.Char(string="Nombre")
 
 
 class Sessions(models.Model):
     _name = 'openacademy.sessions'
 
-    name = fields.Char(
-        "Nombre",
-        required=True,
+    session_fields_id = fields.Many2one(
+        'openacademy.session_fields',
+        string="Session",
     )
     start_date = fields.Date(
         "Fecha de inicio",
@@ -67,13 +69,15 @@ class Sessions(models.Model):
         'openacademy.course',
         ondelete='cascade',
         string="Curso",
+        required=True,
     )
     attendee_ids = fields.Many2many(
         'res.partner',
-        string="Asistentes",
+        string="Alumnos",
     )
-    taken_seats = fields.Float(
-        string="Asientos Ocupados", compute='_taken_seats',
+    difference = fields.Integer(
+        string='Termina en (Días)',
+        compute='_difference',
     )
     end_date = fields.Date(
         string="End Date",
@@ -81,17 +85,31 @@ class Sessions(models.Model):
         compute='_get_end_date',
         inverse='_set_end_date',
     )
+    hours = fields.Float(string="Duration in hours",
+                         compute='_get_hours',
+                         inverse='_set_hours',
+                         )
+
+    attendees_count = fields.Integer(
+        string="Attendees count", compute='_get_attendees_count', store=True)
+
+    state = fields.Selection([
+        ('draft', "Draft"),
+        ('confirmed', "Confirmed"),
+        ('done', "Done"),
+    ])
 
     @api.one
-    @api.depends('seats', 'attendee_ids')
-    def _taken_seats(self):
-        """
-            Calculates the percentage of seats occupied
-        """
-        if not self.seats:
-            self.taken_seats = 0.0
-        else:
-            self.taken_seats = 100.0 * len(self.attendee_ids) / self.seats
+    def action_draft(self):
+        self.state = 'draft'
+
+    @api.one
+    def action_confirm(self):
+        self.state = 'confirmed'
+
+    @api.one
+    def action_done(self):
+        self.state = 'done'
 
     @api.onchange('seats', 'attendee_ids')
     def _verify_valid_instructor(self):
@@ -104,7 +122,7 @@ class Sessions(models.Model):
             return {
                 'warning': {
                     'title':
-                        "Valor de 'Asientos' incorrecto",
+                        "Aviso!",
                     'message':
                         "El número de asientos es menor al número de Alumnos",
                 },
@@ -132,9 +150,33 @@ class Sessions(models.Model):
         if not (self.start_date and self.end_date):
             return
         start_date = fields.Datetime.from_string(self.start_date)
-        end_date = fecha.Datetime.from_string(self.end_date)
+        end_date = fields.Datetime.from_string(self.end_date)
 
         self.duration = (end_date - start_date).days + 1
+
+    @api.one
+    @api.depends('end_date',)
+    def _difference(self):
+        """
+        Calculate the difference in days remaining to complete the course
+        """
+        today = datetime.now()
+        end = fields.Datetime.from_string(self.end_date)
+        self.difference = (end - today).days + 1
+
+    @api.one
+    @api.depends('duration')
+    def _get_hours(self):
+        self.hours = self.duration * 24
+
+    @api.one
+    def _set_hours(self):
+        self.duration = self.hours / 24
+
+    @api.one
+    @api.depends('attendee_ids')
+    def _get_attendees_count(self):
+        self.attendees_count = len(self.attendee_ids)
 
     @api.one
     @api.constrains('seats', 'attendee_ids')

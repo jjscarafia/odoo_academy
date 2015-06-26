@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Open",
+    'name': "Odoo_Academic",
 
     'summary': """
-        Entrenamiento""",
+        Proceso""",
 
     'description': """
         Modulo de Open Academy para Entrenamiento
@@ -24,12 +24,15 @@
     # always loaded
     'data': [
         # 'security/ir.model.access.csv',
-        'templates.xml',
+        'views/templates.xml',
         'views/openacademy.xml',
         'views/partner.xml',
+        'views/session_view.xml',
+        'views/session_workflow.xml',
+        'views/reports.xml',
     ],
     # only loaded in demonstration mode
     'demo': [
-        'demo.xml',
+        'views/demo.xml',
     ],
 }

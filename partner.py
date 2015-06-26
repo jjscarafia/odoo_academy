@@ -9,9 +9,10 @@ class Partner(models.Model):
 
     instructor = fields.Boolean(
         "Instructor",
-        default=False,
+        default=True,
     )
-    session_ids = fields.Many2many(
-        'openacademy.session',
+    attendee = fields.Boolean(string="Is attendee?")
+    session_fields_ids = fields.Many2many(
+        'openacademy.sessions',
         string="Asiste a la sesion", readonly=True,
     )
