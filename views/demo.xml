@@ -1,0 +1,12 @@
+<openerp>
+    <data>
+        <record id="programacion" model="openacademy.course"> 
+            <field name="name">Programacion</field> 
+            <field name="description">Curso de programacion intermedia aplicada a Python</field>
+        </record>  
+         <record id="informatica" model="openacademy.course"> 
+            <field name="name">informatica</field> 
+            <field name="description">Curso de programacion intermedia aplicada a Python</field>
+        </record>  
+    </data>
+</openerp>
